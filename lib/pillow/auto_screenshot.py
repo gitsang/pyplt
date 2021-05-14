@@ -3,6 +3,8 @@ import os
 from PIL import ImageGrab
 
 BASE_DIR = os.getcwd()
+compress_rate = 0.5
+interval = 10
 
 
 def screenshot():
@@ -20,6 +22,13 @@ def screenshot():
     file_name = time_str + ".jpg"
     file_path = os.path.join(dir_path, file_name)
     im = ImageGrab.grab()
+
+    # thumbnail
+    if 0 < compress_rate < 1:
+        w, h = im.size
+        im.thumbnail((w*compress_rate, h*compress_rate))
+
+    # save
     im.save(file_path)
     print("save: ", file_path, " size:", im.size)
 
@@ -28,4 +37,4 @@ if __name__ == '__main__':
     print("start auto_screenshot: ", BASE_DIR)
     while True:
         screenshot()
-        time.sleep(600)
+        time.sleep(interval)
