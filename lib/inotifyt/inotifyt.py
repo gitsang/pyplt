@@ -1,5 +1,6 @@
 """ inotifyt.py """
 # import inotify.adapters
+import os
 import logging
 from inotify_simple import INotify, masks
 
@@ -21,4 +22,7 @@ def watch(path):
 
 if __name__ == "__main__":
     PATH = "./logs/inotify.log"
+    os.makedirs(os.path.dirname(PATH), exist_ok=True)
+    with open(PATH, 'w', encoding='utf-8') as f:
+        f.write('Hello, world!')
     watch(PATH)
