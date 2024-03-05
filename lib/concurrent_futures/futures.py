@@ -1,10 +1,13 @@
 """ futures.py """
 import time
 import logging
-# import builtins
+import builtins
 from concurrent.futures import ThreadPoolExecutor
 from threading import BoundedSemaphore
+from inotifyt import Watcher
 
+logging.basicConfig(level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 MAX_WORKERS = 4
@@ -13,18 +16,48 @@ MAX_QUEUE = MAX_WORKERS
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 semaphore = BoundedSemaphore(MAX_QUEUE)
 
-def wait_on_b():
-    """ Wait on b """
-    time.sleep(5)
-    print(b.result())  # b will never complete because it is waiting on a.
-    return 5
+class Executor:
+    """
+    Executor
+    """
 
-def wait_on_a():
-    """ Wait on a """
-    time.sleep(5)
-    print(a.result())  # a will never complete because it is waiting on b.
-    return 6
+    @classmethod
+    def submit(cls, function_cmd, *args, **kwargs):
+        """
+        same as concurrent.futures.Executor#submit, but with queue
+        params: see concurrent.futures.Executor#submit
+        return: future on success, None on full queue
+        """
+        logger.info("submit fn: %s", function_cmd)
+        logger.info("submit cls: %s", cls)
+
+        # check if semaphore can be acquired, if not queue is full
+        queue_not_full = semaphore.acquire(blocking=False)
+        if not queue_not_full:
+            logger.error("Executor queue full")
+            return None
+        try:
+            future = executor.submit(function_cmd, *args, **kwargs)
+        except builtins.Exception as error:
+            logger.error("Executor task could not be submitted")
+            semaphore.release()
+            raise error
+
+        def when_finished(_):
+            logger.error("Execute task %s end", function_cmd)
+            semaphore.release()
+
+        future.add_done_callback(when_finished)
+        return future
+
+    @classmethod
+    def shutdown(cls, wait=True):
+        """See concurrent.futures.Executor#shutdown"""
+        logger.info("shutting down executor")
+        executor.shutdown(wait)
+        logger.info("Shutdown successful")
+
 
 if __name__ == "__main__":
-    a = executor.submit(wait_on_b)
-    b = executor.submit(wait_on_a)
+    Executor.submit(Watcher)
+    time.sleep(1000)
