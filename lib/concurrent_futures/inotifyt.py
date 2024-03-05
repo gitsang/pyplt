@@ -10,9 +10,8 @@ logging.basicConfig(level=logging.DEBUG,
 logger = logging.getLogger(__name__)
 
 class Watcher:
-    """
-    Watcher is a simple inotify watcher
-    """
+    """ Watcher is a simple inotify watcher """
+
     def __init__(self):
         logger.info("watcher start")
 
@@ -23,13 +22,11 @@ class Watcher:
         self.watch(path)
 
     def on_event(self, path, event):
-        """
-        log event
-        """
-        logger.info("%s got events %s", path, flags.from_mask(event))
+        """ log event """
+        logger.info("%s got event %s", path, flags.from_mask(event))
 
     def watch(self, path):
-        """watch a path for event"""
+        """ watch a path for event """
         logger.info("watching %s", path)
 
         try:
@@ -43,3 +40,5 @@ class Watcher:
             logger.info("waiting for events in %s", path)
             for events in i.read():
                 self.on_event(path, events[1])
+                if events[1] & flags.DELETE_SELF:
+                    return
