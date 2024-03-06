@@ -3,6 +3,7 @@ import logging
 import builtins
 import atexit
 import traceback
+import time
 from concurrent.futures import ThreadPoolExecutor
 from threading import BoundedSemaphore
 from inotifyt import Watcher
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 MAX_WORKERS = 4
 MAX_QUEUE = MAX_WORKERS
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+futures = []
 semaphore = BoundedSemaphore(MAX_QUEUE)
 
 def shutdown():
@@ -24,6 +26,15 @@ def shutdown():
     except builtins.Exception as error:
         logger.error("Error occurred during executor shutdown: %s", error)
 atexit.register(shutdown)
+
+def stats():
+    """ logging stats """
+    def log_stats():
+        while True:
+            logger.info("Executor stats: threads [%s], work_queue [%s], futures [%s]",
+                executor._threads, executor._work_queue, futures)
+            time.sleep(3)
+    return executor.submit(log_stats)
 
 class Executor:
     """ Executor """
@@ -51,6 +62,7 @@ class Executor:
             semaphore.release()
         future.add_done_callback(when_finished)
 
+        futures.append(future)
         return future
 
     @classmethod
@@ -60,4 +72,5 @@ class Executor:
 
 
 if __name__ == "__main__":
+    stats()
     Executor.submit(Watcher)
