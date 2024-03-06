@@ -3,11 +3,21 @@
 import os
 import logging
 import builtins
+import atexit
+import traceback
 from inotify_simple import INotify, flags, masks
 
 logging.basicConfig(level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+def shutdown():
+    """ shutdown handler """
+    try:
+        traceback.print_stack()
+    except builtins.Exception as error:
+        logger.error("Error occurred during executor shutdown: %s", error)
+atexit.register(shutdown)
 
 class Watcher:
     """ Watcher is a simple inotify watcher """

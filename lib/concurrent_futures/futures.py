@@ -1,8 +1,8 @@
 """ futures.py """
-import time
 import logging
 import builtins
 import atexit
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from threading import BoundedSemaphore
 from inotifyt import Watcher
@@ -17,10 +17,12 @@ executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 semaphore = BoundedSemaphore(MAX_QUEUE)
 
 def shutdown():
-    """ shutdown """
-    logger.error("shuting down")
-    executor.shutdown(wait=True)
-    logger.error("shutdown end")
+    """ shutdown handler """
+    try:
+        traceback.print_stack()
+        executor.shutdown(wait=True)
+    except builtins.Exception as error:
+        logger.error("Error occurred during executor shutdown: %s", error)
 atexit.register(shutdown)
 
 class Executor:
