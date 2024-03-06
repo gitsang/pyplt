@@ -27,14 +27,25 @@ def shutdown():
         logger.error("Error occurred during executor shutdown: %s", error)
 atexit.register(shutdown)
 
-def stats():
-    """ logging stats """
-    def log_stats():
-        while True:
-            logger.info("Executor stats: threads [%s], work_queue [%s], futures [%s]",
-                executor._threads, executor._work_queue, futures)
-            time.sleep(3)
-    return executor.submit(log_stats)
+def executor_stats():
+    """ executor_stats """
+    logger.info("Executor stats: threads [%s], work_queue [%s], futures [%s]",
+        executor._threads, executor._work_queue, futures)
+
+def executor_stats_loop():
+    """ executor_stats_loop """
+    while True:
+        executor_stats()
+        time.sleep(3)
+
+global executor_stats_loop_started
+executor_stats_loop_started = False
+def executor_stats_loop_start():
+    """ executor_stats_loop_start """
+    global executor_stats_loop_started
+    if not executor_stats_loop_started:
+        executor.submit(executor_stats_loop)
+    executor_stats_loop_started = True
 
 class Executor:
     """ Executor """
@@ -42,6 +53,7 @@ class Executor:
     @classmethod
     def submit(cls, function_cmd, *args, **kwargs):
         """ same as concurrent.futures.Executor#submit, but with queue """
+        executor_stats_loop_start()
         logger.info("submit cls: %s, fn: %s", cls, function_cmd)
 
         # check if semaphore can be acquired, if not queue is full
@@ -72,5 +84,4 @@ class Executor:
 
 
 if __name__ == "__main__":
-    stats()
     Executor.submit(Watcher)
